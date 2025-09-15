@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
-  // import React, { useEffect, useState } from "react";
+// import React, { useEffect, useState } from "react";
 
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [userData, setUserData] = useState({});
-  const [recentScans, setRecentScans] = useState([]);
+  // const [recentScans, setRecentScans] = useState([]);
   const [stats, setStats] = useState({});
   const [isLoading, setIsLoading] = useState(true);
 
@@ -19,38 +19,13 @@ const Dashboard = () => {
         email: 'michael@gmail.com',
       });
 
-      setRecentScans([
-        {
-          id: 1,
-          examCode: 'CST-8117',
-          date: '2025-09-15',
-          sheetsScanned: 24,
-          averageScore: 78.5,
-          status: 'Completed'
-        },
-        {
-          id: 2,
-          examCode: 'CST-8317',
-          date: '2025-09-14',
-          sheetsScanned: 18,
-          averageScore: 82.3,
-          status: 'Completed'
-        },
-        {
-          id: 3,
-          examCode: 'CST-8506',
-          date: '2025-08-13',
-          sheetsScanned: 32,
-          averageScore: 65.2,
-          status: 'Completed'
-        }
-      ]);
+
 
       setStats({
         totalSheets: 245,
         totalExams: 12,
         accuracyRate: 98.7,
-        successRate: 92.3 
+        successRate: 92.3
       });
 
       setIsLoading(false);
@@ -58,7 +33,7 @@ const Dashboard = () => {
   }, []);
 
 
-// export default function ExamCodeCount() {
+  // export default function ExamCodeCount() {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -79,7 +54,7 @@ const Dashboard = () => {
       });
   }, []);
 
-    const [grades, setGrades] = useState([]);
+  const [grades, setGrades] = useState([]);
   const [sheetCount, setSheetCount] = useState(0);
 
   useEffect(() => {
@@ -109,21 +84,21 @@ const Dashboard = () => {
 
 
   function handleLogout() {
-  fetch("http://localhost:8000/logout", {
-    method: "POST",
-    credentials: "include"  // send cookie automatically
-  })
-    .then(res => res.json())
-    .then(data => {
-      console.log(data.message);
-      navigate("/home");
-      // redirect or update UI
+    fetch("http://localhost:8000/logout", {
+      method: "POST",
+      credentials: "include"  // send cookie automatically
     })
-    .catch(err => console.error(err));
-}
+      .then(res => res.json())
+      .then(data => {
+        console.log(data.message);
+        navigate("/home");
+        // redirect or update UI
+      })
+      .catch(err => console.error(err));
+  }
 
 
-const [name, setName] = useState("");
+  const [name, setName] = useState("");
 
   useEffect(() => {
     fetch("http://localhost:8000/me", {
@@ -142,6 +117,39 @@ const [name, setName] = useState("");
       .catch((err) => {
         console.error("Error fetching user:", err);
       });
+  }, []);
+
+  const [recentScans, setRecentScans] = useState([]);
+
+  useEffect(() => {
+    const fetchRecentScans = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/my-exams/summary", {
+          method: "GET",
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to fetch recent scans");
+
+        const data = await res.json();
+        // Get only top 3 most recent exams
+        const topThree = data.exams.slice(0, 3);
+
+        const formatted = topThree.map((exam, idx) => ({
+          id: idx + 1,
+          examCode: exam.exam_code,
+          date: exam.date,
+          sheetsScanned: exam.count,
+          averageScore: exam.avg_score,
+          status: exam.avg_score >= 50 ? "Passed" : "Failed",
+        }));
+
+        setRecentScans(formatted);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchRecentScans();
   }, []);
 
 
@@ -214,7 +222,7 @@ const [name, setName] = useState("");
             </div>
           </div>
 
-          
+
 
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex items-center">
@@ -230,7 +238,7 @@ const [name, setName] = useState("");
             </div>
           </div>
 
-         
+
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -252,7 +260,7 @@ const [name, setName] = useState("");
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sheets</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. Score</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      {/* <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th> */}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -261,12 +269,12 @@ const [name, setName] = useState("");
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{scan.examCode}</td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{scan.date}</td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{scan.sheetsScanned}</td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">{scan.averageScore}%</td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-green-600">{scan.averageScore}</td>
+                        {/* <td className="px-4 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${scan.status === "Passed" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
                             {scan.status}
                           </span>
-                        </td>
+                        </td> */}
                       </tr>
                     ))}
                   </tbody>
@@ -319,7 +327,7 @@ const [name, setName] = useState("");
               </div>
             </div>
 
-           
+
           </div>
         </div>
       </div>
