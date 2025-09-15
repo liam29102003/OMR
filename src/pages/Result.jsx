@@ -1,108 +1,110 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
-
+import { ArrowDownOnSquareIcon, PhotoIcon } from "@heroicons/react/24/outline";
 
 const Result = () => {
-  const navigate = useNavigate();  
+  const navigate = useNavigate();
   const [results, setResults] = useState([]);
-  const [selectedResult, setSelectedResult] = useState(null);
+  const [grades, setGrades] = useState({});
+  const [expandedExam, setExpandedExam] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [deleteTarget, setDeleteTarget] = useState(null); 
-  const detailBoxRef = useRef(null);
 
-
+  // 🔹 Fetch results summary
   useEffect(() => {
-    setTimeout(() => {
-      const mockResults = [
-        {
-          id: 1,
-          rollNumber: '4SE-1461',
-          date: '2025-08-15',
-          examCode: 'CST-8117',
-          score: 80,
-          totalQuestions: 10,
-          correctAnswers: 8,
-          status: 'Passed'
-        },
-        {
-          id: 2,
-          rollNumber: '4SE-1462',
-          date: '2025-08-15',
-          examCode: 'CST-8117',
-          score: 90,
-          totalQuestions: 10,
-          correctAnswers: 9,
-          status: 'Passed'
-        },
-        {
-          id: 3,
-          rollNumber: '4SE-1461',
-          date: '2025-08-15',
-          examCode: 'CST-8117',
-          score: 40,
-          totalQuestions: 10,
-          correctAnswers: 4,
-          status: 'Failed'
-        }
-      ];
-      setResults(mockResults);
-      setIsLoading(false);
-    }, 1500);
-  }, []);
+    const fetchResults = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/my-exams/summary", {
+          method: "GET",
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to fetch results");
 
-  // Close detail box when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (detailBoxRef.current && !detailBoxRef.current.contains(event.target)) {
-        if (!event.target.closest('.view-detail-button')) {
-          setSelectedResult(null);
-        }
+        const datata = await res.json();
+        const data = datata.exams;
+
+        const formatted = data.map((item, index) => ({
+          id: index + 1,
+          date: item.date,
+          examCode: item.exam_code,
+          score: item.avg_score,
+        }));
+
+        setResults(formatted);
+      } catch (err) {
+        console.error("Error fetching:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    fetchResults();
   }, []);
 
-  const handleViewDetails = (result, event) => {
-    event.stopPropagation();
-    setSelectedResult(selectedResult && selectedResult.id === result.id ? null : result);
-  };
+  const [showModal, setShowModal] = useState(false);
 
-  const handleExport = (format) => {
-    alert(`Exporting results in ${format} format`);
-  };
+  // 🔹 Fetch grades for a specific exam_code
+  const fetchGrades = async (examCode) => {
+    try {
+      const res = await fetch(`http://localhost:8000/my-exams/${examCode}/grades`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch grades");
 
-  const confirmDelete = (id) => {
-    setDeleteTarget(id);
-  };
-
-  const handleDeleteConfirmed = () => {
-    if (deleteTarget !== null) {
-      setResults(results.filter(result => result.id !== deleteTarget));
-      if (selectedResult && selectedResult.id === deleteTarget) {
-        setSelectedResult(null);
-      }
-      setDeleteTarget(null);
+      const data = await res.json();
+      setGrades((prev) => ({
+        ...prev,
+        [examCode]: data.grades,
+      }));
+    } catch (err) {
+      console.error("Error fetching grades:", err);
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Passed': return 'text-green-600 bg-green-100';
-      case 'Failed': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+  // Toggle expanded exam
+  const handleToggle = (examCode) => {
+    if (expandedExam === examCode) {
+      setExpandedExam(null);
+    } else {
+      setExpandedExam(examCode);
+      if (!grades[examCode]) fetchGrades(examCode);
+    }
+  };
+  const formatAnswers = (answers) => {
+  const map = { 0: "A", 1: "B", 2: "C", 3: "D", "-1": "-" };
+  return answers.map(a => map[a] ?? "N/A").join(", ");
+};
+
+
+  // Download graded images for an exam
+  const handleDownloadImages = async (examCode) => {
+    try {
+      const res = await fetch(`http://localhost:8000/my-exams/${examCode}/graded-images`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to download images");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${examCode}_graded_images.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error downloading images:", err);
+      alert("Failed to download graded images.");
     }
   };
 
   const getScoreColor = (score) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+    if (score >= 70) return "text-green-600";
+    if (score >= 50) return "text-yellow-600";
+    return "text-red-600";
   };
 
   if (isLoading) {
@@ -118,7 +120,7 @@ const Result = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 py-8 px-4">
-        <div className="absolute top-10 left-4">
+      <div className="absolute top-10 left-4">
         <button
           onClick={() => navigate(-1)}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E97B58] text-white shadow hover:bg-[#d96b4e] transition"
@@ -132,229 +134,158 @@ const Result = () => {
           <p className="text-gray-600 mt-2">View and manage scanned OMR sheet results</p>
         </div>
 
-        {/* Action Bar */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 flex flex-wrap justify-between items-center">
-          <div className="flex items-center">
-            <span className="text-gray-700 mr-4">
-              {results.length} result{results.length !== 1 ? 's' : ''} found
-            </span>
-          </div>
-          <div className="flex space-x-3 mt-4 md:mt-0">
-            <button
-              onClick={() => handleExport('CSV')}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#E97B58] transition-colors flex items-center"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Export CSV
-            </button>
-            <Link
-              to="/scanner"
-              className="px-4 py-2 bg-[#E97B58] text-white rounded-md hover:bg-[#d86a47] focus:outline-none focus:ring-2 focus:ring-[#E97B58] transition-colors flex items-center"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              New Scan
-            </Link>
-          </div>
-        </div>
-
         {/* Results Table */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6 relative">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll Number</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exam Code</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Exam Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Exam Code</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Score</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {results.map((result) => (
-                  <tr key={result.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{result.rollNumber}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{result.date}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{result.examCode}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`font-bold ${getScoreColor(result.score)}`}>{result.score}%</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(result.status)}`}>
-                        {result.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={(e) => handleViewDetails(result, e)}
-                        className="text-[#E97B58] hover:text-[#d86a47] mr-3 view-detail-button"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => confirmDelete(result.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
+                  <React.Fragment key={result.id}>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{result.date}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{result.examCode}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={`font-bold ${getScoreColor(result.score)}`}>{result.score}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => handleToggle(result.examCode)}
+                          className="text-[#E97B58] hover:text-[#d86a47] mr-3"
+                        >
+                          {expandedExam === result.examCode ? "Hide" : "View"}
+                        </button>
+                      </td>
+                    </tr>
+
+                    {/* Expanded Grades */}
+                    {expandedExam === result.examCode && (
+                      <tr className="bg-gray-50">
+                        <td colSpan="4" className="px-6 py-4">
+                          {!grades[result.examCode] ? (
+                            <p className="text-gray-500 text-sm">Loading grades...</p>
+                          ) : (
+                            <div>
+                              <div className="mt-2 flex space-x-3 justify-end">
+                                {/* CSV Download */}
+                                <button
+                                  onClick={() =>
+                                    window.open(
+                                      `http://localhost:8000/my-exams/${result.examCode}/grades/csv`,
+                                      "_blank"
+                                    )
+                                  }
+                                  className="flex items-center space-x-2 text-green-600 hover:text-green-800 focus:outline-none"
+                                  title="Download CSV"
+                                >
+                                  <ArrowDownOnSquareIcon className="w-5 h-5" />
+                                  <span className="text-sm font-medium">CSV</span>
+                                </button>
+
+                                {/* Graded Images Download */}
+                                <button
+                                  onClick={() => handleDownloadImages(result.examCode)}
+                                  className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 focus:outline-none"
+                                  title="Download Graded Images"
+                                >
+                                  <ArrowDownOnSquareIcon className="w-5 h-5" />
+                                  <span className="text-sm font-medium">Images</span>
+                                </button>
+                              </div>
+
+                              <div className="overflow-x-auto mt-2">
+                                <table className="min-w-full divide-y divide-gray-200 border rounded-lg">
+                                  <thead className="bg-gray-100">
+                                    <tr>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Roll Number</th>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="bg-white divide-y divide-gray-200">
+                                    {grades[result.examCode].map((grade, idx) => {
+                                      return (
+                                        <React.Fragment key={idx}>
+                                          <tr>
+                                            <td className="px-4 py-2 text-sm text-gray-600">{grade.roll_number}</td>
+                                            <td className="px-4 py-2 text-sm">
+                                              <span className={`font-bold ${getScoreColor(grade.score)}`}>
+                                                {grade.score}
+                                              </span>
+                                            </td>
+                                            <td className="px-4 py-2 text-sm text-gray-600">{grade.date}</td>
+                                            <td className="px-4 py-2 text-sm flex space-x-2">
+                                              {/* View Details Modal */}
+                                              <button
+                                                onClick={() => setShowModal(true)}
+                                                className="text-blue-600 hover:text-blue-800"
+                                                title="View Details"
+                                              >
+                                                <PhotoIcon className="w-5 h-5" />
+                                              </button>
+
+                                              {/* Download Image */}
+                                              <a
+                                                href={`http://localhost:8000/download/${grade.graded_image}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-green-600 hover:text-green-800"
+                                                title="Download Graded Image"
+                                              >
+                                                <ArrowDownOnSquareIcon className="w-5 h-5" />
+                                              </a>
+                                            </td>
+                                          </tr>
+
+                                          {/* Modal */}
+                                          {showModal && (
+  <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
+                                              <div className="bg-white rounded-lg shadow-lg w-96 max-w-full p-6 relative">
+                                                <button
+                                                  onClick={() => setShowModal(false)}
+                                                  className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+                                                >
+                                                  X
+                                                </button>
+                                                <h3 className="text-lg font-bold text-gray-800 mb-4">Grade Details</h3>
+                                                <p><span className="font-medium">Roll Number:</span> {grade.roll_number}</p>
+                                                <p><span className="font-medium">Score:</span> {grade.score}</p>
+                                                <p><span className="font-medium">Date:</span> {grade.date}</p>
+                                                <p><span className="font-medium">Invalid Count:</span> {grade.invalid_count}</p>
+                                                <p><span className="font-medium">Answers:</span> {formatAnswers(grade.student_answers)}</p>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </React.Fragment>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Custom Delete Confirmation Modal */}
-        {deleteTarget !== null && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-80">
-              <h2 className="text-lg font-semibold mb-4">Confirm Delete</h2>
-              <p className="text-sm text-gray-600 mb-6">
-                Are you sure you want to delete this result?
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setDeleteTarget(null)}
-                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteConfirmed}
-                  className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Floating Detail Box */}
-        {selectedResult && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div
-              className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-              onClick={() => setSelectedResult(null)}
-            ></div>
-            <div
-              ref={detailBoxRef}
-              className="relative w-11/12 max-w-2xl bg-white rounded-xl shadow-2xl border border-gray-200 z-50"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Same detail box content as before */}
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Result Details</h2>
-                  <button
-                    onClick={() => setSelectedResult(null)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                        {/* Your details content remains the same */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Student Information</h3>
-            <div className="space-y-3">
-              <div>
-                <span className="text-sm font-medium text-gray-500">Roll Number:</span>
-                <p className="text-gray-900">{selectedResult.rollNumber}</p>
-              </div>
-              <div>
-                <span className="text-sm font-medium text-gray-500">Exam Date:</span>
-                <p className="text-gray-900">{selectedResult.date}</p>
-              </div>
-              <div>
-                <span className="text-sm font-medium text-gray-500">Exam Code:</span>
-                <p className="text-gray-900">{selectedResult.examCode}</p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Performance</h3>
-            <div className="space-y-3">
-              <div>
-                <span className="text-sm font-medium text-gray-500">Score:</span>
-                <p className="text-lg font-bold text-green-600">{selectedResult.score}%</p>
-              </div>
-              <div>
-                <span className="text-sm font-medium text-gray-500">Correct Answers:</span>
-                <p className="text-gray-900">{selectedResult.correctAnswers} / {selectedResult.totalQuestions}</p>
-              </div>
-              {/* <div>
-                <span className="text-sm font-medium text-gray-500">Time Spent:</span>
-                <p className="text-gray-900">{selectedResult.timeSpent}</p>
-              </div> */}
-              <div>
-                <span className="text-sm font-medium text-gray-500">Status:</span>
-                <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-600">
-                  {selectedResult.status}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gray-50 p-4 rounded-lg mb-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Answer Analysis</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-              <span className="block text-2xl font-bold text-green-600">{selectedResult.correctAnswers}</span>
-              <span className="text-sm text-green-800">Correct Answers</span>
-            </div>
-            <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-              <span className="block text-2xl font-bold text-red-600">
-                {selectedResult.totalQuestions - selectedResult.correctAnswers}
-              </span>
-              <span className="text-sm text-red-800">Incorrect Answers</span>
-            </div>
-            <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <span className="block text-2xl font-bold text-blue-600">{selectedResult.totalQuestions}</span>
-              <span className="text-sm text-blue-800">Total Questions</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end space-x-3">
-          <button
-            onClick={() => setSelectedResult(null)}
-            className="px-4 py-2 bg-[#E97B58] text-white rounded-md hover:bg-[#d86a47] focus:outline-none focus:ring-2 focus:ring-[#E97B58] transition-colors"
-          >
-            Close
-          </button>
-        </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {results.length === 0 && (
           <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-            <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No results found</h3>
             <p className="text-gray-500 mb-4">Scan some OMR sheets to see results here.</p>
-            <Link
-              to="/scan"
-              className="px-4 py-2 bg-[#E97B58] text-white rounded-md hover:bg-[#d86a47] focus:outline-none focus:ring-2 focus:ring-[#E97B58] transition-colors inline-flex items-center"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Start Scanning
-            </Link>
           </div>
         )}
       </div>

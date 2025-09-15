@@ -123,6 +123,28 @@ const Dashboard = () => {
 }
 
 
+const [name, setName] = useState("");
+
+  useEffect(() => {
+    fetch("http://localhost:8000/me", {
+      method: "GET",
+      credentials: "include", // send session_token cookie
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Not authorized");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setName(data.user.name); // only store name
+      })
+      .catch((err) => {
+        console.error("Error fetching user:", err);
+      });
+  }, []);
+
+
 
   if (isLoading) {
     return (
@@ -151,7 +173,7 @@ const Dashboard = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-[#E97B58]">Dashboard</h1>
-            <p className="text-gray-600 mt-2">Welcome back, {userData.name}</p>
+            <p className="text-gray-600 mt-2">Welcome back, {name}</p>
           </div>
           <div className="mt-4 md:mt-0 flex space-x-3">
             <Link
