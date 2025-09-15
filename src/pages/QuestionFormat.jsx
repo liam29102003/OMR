@@ -103,7 +103,7 @@ export default function QuestionFormat() {
 
             {/* Exam */}
             <div className="flex items-center mb-1">
-              <label htmlFor="exam" className="font-medium text-sm mr-2">
+              <label htmlFor="exam" className="font-medium text-xl mr-2">
                 Exam:
               </label>
               <input
@@ -117,7 +117,7 @@ export default function QuestionFormat() {
 
             {/* Exam Code Dropdown */}
             <div className="flex items-center gap-2 mb-1">
-              <label htmlFor="examCode" className="font-medium text-sm">
+              <label htmlFor="examCode" className="font-medium text-xl">
                 Exam Code:
               </label>
               <select
@@ -140,7 +140,7 @@ export default function QuestionFormat() {
             {/* Year & Semester */}
             <div className="flex items-center gap-3">
               <div className="flex gap-2 flex-1">
-                <label htmlFor="year" className="font-medium text-sm mr-2">
+                <label htmlFor="year" className="font-medium text-xl mr-2">
                 Year:
               </label>
                 <input
@@ -151,7 +151,7 @@ export default function QuestionFormat() {
                   className="px-3 py-2 w-10 h-8 focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
                 />
                 <div className="self-center">,</div>
-                <label htmlFor="semester" className="font-medium text-sm mr-2">
+                <label htmlFor="semester" className="font-medium text-xl mr-2">
                 Semester:
               </label>
                 <input
