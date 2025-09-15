@@ -69,22 +69,37 @@ const SetupAnswerKey = () => {
     return isValid;
   };
 
-  const handleSave = () => {
-    if (validateForm()) {
-      // Prepare data in JSON format
-      const answerKeyData = {
-        examDetails,
-        answers: answers.map((answer, index) => ({
-          question: index + 1,
-          correctOption: answer !== null ? String.fromCharCode(65 + answer) : null
-        }))
-      };
-      
-      console.log('Answer Key Data:', JSON.stringify(answerKeyData, null, 2));
-      alert('Answer key saved successfully!');
-      navigate("/scanner");
-    }
+  const handleSave = async () => {
+  if (answers.some(a => a === null)) {
+    alert("Please answer all questions before saving!");
+    return;
+  }
+
+  const answerKeyData = {
+    answers: answers  // [0,1,2,...]
   };
+
+  try {
+    const response = await fetch("http://localhost:8000/set-answer-key", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(answerKeyData),
+      credentials: 'include'
+    });
+
+    if (!response.ok) throw new Error("Failed to save answer key");
+
+    const data = await response.json();
+    console.log("Saved:", data);
+    alert(`Answer key saved successfully! Exam Code: ${data.exam_code}`);
+    navigate("/scanner");
+
+  } catch (error) {
+    console.error("Error:", error);
+    alert("Error saving answer key: " + error.message);
+  }
+};
+
 
   const handleReset = () => {
     // Reset all answers to null

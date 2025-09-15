@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
+  // import React, { useEffect, useState } from "react";
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -55,6 +57,73 @@ const Dashboard = () => {
     }, 1500);
   }, []);
 
+
+// export default function ExamCodeCount() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    fetch("http://localhost:8000/exam-codes", {
+      credentials: "include" // important if your session token is in cookie
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch exam codes");
+        return res.json();
+      })
+      .then((data) => {
+        // backend returns { exam_codes: [...] }
+        const examCodes = data.exam_codes || [];
+        setCount(examCodes.length);
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }, []);
+
+    const [grades, setGrades] = useState([]);
+  const [sheetCount, setSheetCount] = useState(0);
+
+  useEffect(() => {
+    const fetchGrades = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/grades", {
+          method: "GET",
+          credentials: "include", // 🔑 send cookies to backend
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch grades");
+        }
+
+        const data = await res.json();
+        setGrades(data.grades);
+        setSheetCount(data.count);
+      } catch (err) {
+        console.error("Error fetching grades:", err);
+      }
+    };
+
+    fetchGrades();
+  }, []);
+
+
+
+
+  function handleLogout() {
+  fetch("http://localhost:8000/logout", {
+    method: "POST",
+    credentials: "include"  // send cookie automatically
+  })
+    .then(res => res.json())
+    .then(data => {
+      console.log(data.message);
+      navigate("/home");
+      // redirect or update UI
+    })
+    .catch(err => console.error(err));
+}
+
+
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
@@ -95,7 +164,7 @@ const Dashboard = () => {
               New Scan
             </Link>
             <Link
-              to="/logout"
+              onClick={handleLogout}
               className="px-4 py-2 bg-[#E97B58] text-white rounded-md hover:bg-[#d86a47] focus:outline-none focus:ring-2 focus:ring-[#E97B58] transition-colors flex items-center"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,24 +187,12 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Sheets</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalSheets}</p>
+                <p className="text-2xl font-bold text-gray-900">{sheetCount}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg mr-4">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Success Rate</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.successRate}%</p>
-              </div>
-            </div>
-          </div>
+          
 
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex items-center">
@@ -146,24 +203,12 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Exams</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalExams}</p>
+                <p className="text-2xl font-bold text-gray-900">{count}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-purple-100 rounded-lg mr-4">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Accuracy Rate</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.accuracyRate}%</p>
-              </div>
-            </div>
-          </div>
+         
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -252,45 +297,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Recent Activity */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h2>
-              <div className="space-y-4">
-                <div className="flex items-start">
-                  <div className="p-2 bg-green-100 rounded-full mr-3">
-                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Completed MATH101 evaluation</p>
-                    <p className="text-xs text-gray-500">24 sheets processed • 2 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="p-2 bg-blue-100 rounded-full mr-3">
-                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Created new answer key</p>
-                    <p className="text-xs text-gray-500">SCI202 exam • 5 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="p-2 bg-purple-100 rounded-full mr-3">
-                    <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Exported results to CSV</p>
-                    <p className="text-xs text-gray-500">ENG103 exam • 1 day ago</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+           
           </div>
         </div>
       </div>
@@ -298,4 +305,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Dashboard

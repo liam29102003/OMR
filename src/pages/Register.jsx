@@ -61,18 +61,39 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (validateForm()) {
-      setIsSubmitting(true);
-      // Simulate API call
-      setTimeout(() => {
-        setIsSubmitting(false);
-        console.log('Registration data:', formData);
-        // Handle successful registration here
-      }, 1000);
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+
+  setIsSubmitting(true);
+
+  try {
+    const response = await fetch("http://localhost:8000/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setErrors({ form: data.detail || "Registration failed" });
+      setIsSubmitting(false);
+      return;
     }
-  };
+
+    console.log("Registration successful:", data);
+    navigate("/login"); // Redirect to login page
+  } catch (err) {
+    console.error("Registration error:", err);
+    setErrors({ form: "Network error. Please try again." });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -281,6 +302,9 @@ const Register = () => {
                 I agree to the <a href="#" className="text-[#E97B58] hover:text-[#d86a47] transition-colors">Terms and Conditions</a>
               </label>
             </div>
+              {errors.form && (
+  <p className="text-red-600 text-sm mb-2">{errors.form}</p>
+)}
 
             <div>
               <button

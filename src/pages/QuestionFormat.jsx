@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useReactToPrint } from "react-to-print";
 import { ArrowLeftIcon } from "@heroicons/react/24/solid";
 import { useNavigate } from "react-router-dom";
@@ -6,13 +6,30 @@ import { useNavigate } from "react-router-dom";
 export default function QuestionFormat() {
   const navigate = useNavigate();
   const componentRef = useRef(null);
+
+  const [examCodes, setExamCodes] = useState([]); // store exam codes from backend
   const [form, setForm] = useState({
     university: "",
     exam: "",
     academicYear: "",
     year: "",
     semester: "",
+    examCode: "", // new field
   });
+
+  useEffect(() => {
+    fetch("http://localhost:8000/exam-codes", {
+      credentials: "include" // important for cookie
+    })
+      .then(res => res.json())
+      .then(data => {
+        console.log(data);
+        // backend returns { exam_codes: [...] }
+        setExamCodes(data.exam_codes || []);
+      })
+      .catch(err => console.error(err));
+  }, []);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,7 +47,7 @@ export default function QuestionFormat() {
       if (componentRef.current) {
         componentRef.current.classList.remove("print-mode");
       }
-    }
+    },
   });
 
   return (
@@ -48,14 +65,14 @@ export default function QuestionFormat() {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-[#E97B58]">Create OMR Sheet</h1>
-          <p className="text-gray-600 mt-2">
-            Customize and print OMR sheets
-          </p>
+          <p className="text-gray-600 mt-2">Customize and print OMR sheets</p>
         </div>
 
         <div className="mb-4 flex justify-center">
           <button
-            onClick={handlePrint}
+            onClick={() => {
+              handlePrint();
+            }}
             className="px-6 py-3 bg-[#E97B58] text-white rounded-lg shadow hover:bg-[#d96b4e] transition-colors"
           >
             Print Sheet
@@ -63,78 +80,84 @@ export default function QuestionFormat() {
         </div>
       </div>
 
-      {/* OMR Sheet*/}
+      {/* OMR Sheet */}
       <div
         ref={componentRef}
         className="mx-auto bg-white border border-black w-[800px] p-10 relative"
         style={{ boxShadow: "0 6px 20px rgba(0,0,0,0.08)" }}
       >
-        {/* Form*/}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-3">
-            <label className="w-36 text-sm font-semibold">University:</label>
-            <input
-              name="university"
-              value={form.university}
-              onChange={handleChange}
-              placeholder="Enter university name"
-              className="flex-1 border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
-            />
-            {/* <div className="print-text font-semibold hidden">{form.university || " "}</div> */}
-          </div>
-
-          <div className="flex items-center gap-3 mb-3">
-            <label className="w-36 text-sm font-semibold">Exam:</label>
-            <input
-              name="exam"
-              value={form.exam}
-              onChange={handleChange}
-              placeholder="Enter exam name"
-              className="flex-1 border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
-            />
-            {/* <div className="print-text font-semibold hidden">{form.exam || " "}</div> */}
-          </div>
-
-          <div className="flex items-center gap-3 mb-3">
-            <label className="w-36 text-sm font-semibold">Academic Year:</label>
-            <input
-              name="academicYear"
-              value={form.academicYear}
-              onChange={handleChange}
-              placeholder="Enter academic year"
-              className="flex-1 border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
-            />
-            {/* <div className="print-text font-semibold hidden">{form.academicYear || " "}</div> */}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <label className="w-36 text-sm font-semibold">Year, Semester:</label>
-            <div className="flex gap-2 flex-1">
+        {/* form */}
+        <div className="flex justify-between mb-6">
+          <div className="w-2/3"></div>
+          <div className="w-1/3">
+            {/* University */}
+            <div className="flex items-center mb-1">
               <input
-                name="year"
-                value={form.year}
+                name="university"
+                value={form.university}
                 onChange={handleChange}
-                placeholder="Year"
-                className="border border-gray-300 px-3 py-2 rounded w-28 focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
-              />
-              <div className="self-center">,</div>
-              <input
-                name="semester"
-                value={form.semester}
-                onChange={handleChange}
-                placeholder="Semester"
-                className="border border-gray-300 px-3 py-2 rounded w-36 focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
+                placeholder="University:"
+                className="w-60 h-8 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
               />
             </div>
-            {/* <div className="print-text flex gap-1 items-center font-semibold">
-              <span>{form.year || " "}</span>
-              <span>,</span>
-              <span>{form.semester || " "}</span>
-            </div> */}
+
+            {/* Exam */}
+            <div className="flex items-center mb-1">
+              <input
+                name="exam"
+                value={form.exam}
+                onChange={handleChange}
+                placeholder="Exam:"
+                className="w-60 h-8 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
+              />
+            </div>
+
+            {/* Exam Code Dropdown */}
+            <div className="flex items-center gap-2 mb-1">
+              <label htmlFor="examCode" className="font-medium text-sm">
+                Exam Code:
+              </label>
+              <select
+                id="examCode"
+                name="examCode"
+                value={form.examCode}
+                onChange={handleChange}
+                className="w-60 h-8 px-3 py-1 border focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
+              >
+                <option value="">Select Exam Code</option>
+                {examCodes.map((exam, idx) => (
+                  <option key={idx} value={exam}>
+                    {exam}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+
+            {/* Year & Semester */}
+            <div className="flex items-center gap-3">
+              <div className="flex gap-2 flex-1">
+                <input
+                  name="year"
+                  value={form.year}
+                  onChange={handleChange}
+                  placeholder="Year:"
+                  className="px-3 py-2 w-20 h-8 focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
+                />
+                <div className="self-center">,</div>
+                <input
+                  name="semester"
+                  value={form.semester}
+                  onChange={handleChange}
+                  placeholder="Semester:"
+                  className="px-3 py-2 w-35 h-8 focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* roll no.*/}
+        {/* Rest of OMR design unchanged */}
         <div className="mt-6">
           <div className="grid grid-cols-10 text-center border-2 border-black">
             {Array.from({ length: 10 }, (_, i) => (
@@ -216,25 +239,13 @@ export default function QuestionFormat() {
         {/* Result*/}
         <div className="mt-8 flex justify-end items-center gap-4">
           <div className="font-semibold text-sm">Result:</div>
-          <div className="w-40 h-12 border-2 border-black" />
+          <div className="w-50 h-18 border-2 border-black" />
         </div>
-
-        {/* on print*/}
-        <style>{`
-          @media print {
-            .print-mode input {
-              display: none !important;
-            }
-    
-            }
-            body, html {
-              background: white !important;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-          }
-        `}</style>
       </div>
     </div>
   );
 }
+
+
+
+

@@ -44,18 +44,44 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (validateForm()) {
-      setIsSubmitting(true);
-      // Simulate API call
-      setTimeout(() => {
-        setIsSubmitting(false);
-        console.log('Login data:', formData);
-        // Handle successful login here
-      }, 1000);
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+
+  setIsSubmitting(true);
+
+  try {
+    const response = await fetch("http://localhost:8000/login", {
+      method: "POST",
+      credentials: "include", // Important to send cookies
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: formData.email,
+        password: formData.password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setErrors({ form: data.detail || "Login failed" });
+      setIsSubmitting(false);
+      return;
     }
-  };
+
+    // Login successful, redirect user
+    console.log("Login successful:", data);
+    navigate("/dashboard"); // change "/home" to your desired route
+  } catch (err) {
+    console.error("Login error:", err);
+    setErrors({ form: "Network error. Please try again." });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
