@@ -103,6 +103,9 @@ export default function QuestionFormat() {
 
             {/* Exam */}
             <div className="flex items-center mb-1">
+              <label htmlFor="exam" className="font-medium text-sm mr-2">
+                Exam:
+              </label>
               <input
                 name="exam"
                 value={form.exam}
@@ -137,20 +140,26 @@ export default function QuestionFormat() {
             {/* Year & Semester */}
             <div className="flex items-center gap-3">
               <div className="flex gap-2 flex-1">
+                <label htmlFor="year" className="font-medium text-sm mr-2">
+                Year:
+              </label>
                 <input
                   name="year"
                   value={form.year}
                   onChange={handleChange}
-                  placeholder="Year:"
-                  className="px-3 py-2 w-20 h-8 focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
+                  placeholder=""
+                  className="px-3 py-2 w-10 h-8 focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
                 />
                 <div className="self-center">,</div>
+                <label htmlFor="semester" className="font-medium text-sm mr-2">
+                Semester:
+              </label>
                 <input
                   name="semester"
                   value={form.semester}
                   onChange={handleChange}
-                  placeholder="Semester:"
-                  className="px-3 py-2 w-35 h-8 focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
+                  placeholder=""
+                  className="px-3 py-2 w-10 h-8 focus:outline-none focus:ring-2 focus:ring-[#E97B58]"
                 />
               </div>
             </div>
